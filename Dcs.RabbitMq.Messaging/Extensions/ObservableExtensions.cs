@@ -32,7 +32,7 @@ namespace Dcs.RabbitMq.Messaging.Extensions
             Func<T> factory,
             IScheduler scheduler = null)
         {
-            scheduler = scheduler ?? Scheduler.ThreadPool;
+            scheduler = scheduler ?? Scheduler.Default;
 
             AsyncSubject<T> res = new AsyncSubject<T>();
             scheduler.Schedule(() =>
