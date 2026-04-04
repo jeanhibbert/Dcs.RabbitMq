@@ -1,20 +1,19 @@
-﻿using Dcs.RabbitMq.Messaging.Messaging;
+using Dcs.RabbitMq.Messaging.Messaging;
 using Dcs.RabbitMq.Messaging.Serialization;
-
 
 namespace Dcs.RabbitMq.Messaging
 {
-    public sealed class RabbitMqMessagingService : MessagingServiceBase
+    public sealed class TcpMessagingService : MessagingServiceBase
     {
-        public RabbitMqMessagingService(IEndpointProvider endpointProvider)
+        public TcpMessagingService(IEndpointProvider endpointProvider)
             : base(endpointProvider)
         {
         }
     }
 
-    public sealed class RabbitMqMessagingService<T> : MessagingServiceBase<T>
+    public sealed class TcpMessagingService<T> : MessagingServiceBase<T>
     {
-        public RabbitMqMessagingService(
+        public TcpMessagingService(
             IMessagingService messagingService,
             IMessageFactory messageFactory,
             IBinarySerializer serializer)

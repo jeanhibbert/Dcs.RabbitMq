@@ -15,7 +15,9 @@ namespace Dcs.RabbitMq.Common
 
         public TestEndpointDetailsProvider()
         {
-            _endpoints.Add("TEST_ALERTS", new RabbitMqEndpointDetails("Test/Alerts", RabbitMqEndpointType.Default));
+            _endpoints.Add("TEST_ALERTS", new MessageEndpointDetails("Test/Alerts", EndpointType.Default));
+            _endpoints.Add("TEST_PRICING_REQUESTS", new MessageEndpointDetails("Test/Pricing/Requests", EndpointType.Default));
+            _endpoints.Add("TEST_PRICING_RESPONSES", new MessageEndpointDetails("Test/Pricing/Responses", EndpointType.Default));
         }
 
 
