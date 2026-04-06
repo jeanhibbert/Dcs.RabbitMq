@@ -12,9 +12,9 @@ namespace Dcs.RabbitMq.SkeletonServerApp
             TestEndpointDetailsProvider endpointDetailsProvider = new TestEndpointDetailsProvider();
             string serverId = Guid.NewGuid().ToString();
             var sessionOptions = TcpSessionOptions.CreateServer("127.0.0.1", 5050, serverId);
-            var sessionBuilder = new MessagingSessionBuilder("ServerApp", endpointDetailsProvider, sessionOptions);
+            var sessionBuilder = new TcpMessagingSessionBuilder("ServerApp", endpointDetailsProvider, sessionOptions);
 
-            using (sessionBuilder.MessagingSession)
+            using (sessionBuilder.MessagingTransport)
             {
                 using (AlertService alertService = new AlertService(serverId, sessionBuilder))
                 using (PricingService pricingService = new PricingService(sessionBuilder))
