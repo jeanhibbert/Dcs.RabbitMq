@@ -1,9 +1,7 @@
 using Dcs.RabbitMq.Messaging.Messaging;
-using ProtoBuf;
+using Dcs.RabbitMq.Messaging.Transport;
 using System;
-using System.Buffers.Binary;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -83,8 +81,8 @@ namespace Dcs.RabbitMq.Messaging.Tcp
 
         internal void Send(IEndpointDetails endpointDetails, IMessage message, string targetSessionId)
         {
-            var envelope = CreateEnvelope(endpointDetails.Address, message, targetSessionId);
-            var payload = SerializeEnvelope(envelope);
+            var envelope = TransportEnvelopeFactory.FromMessage(endpointDetails.Address, message, targetSessionId);
+            var payload = TransportTcpFraming.SerializeLengthPrefixed(envelope);
 
             if (_options.Mode == TcpSessionMode.Client)
             {
@@ -121,31 +119,7 @@ namespace Dcs.RabbitMq.Messaging.Tcp
             RegisterConnection(tcpClient);
         }
 
-        private static TcpEnvelope CreateEnvelope(string endpointAddress, IMessage message, string targetSessionId)
-        {
-            var properties = message.Properties as MessageProperties;
-            var propertyValues = new List<TcpPropertyValue>();
-
-            if (properties != null)
-            {
-                foreach (var pair in properties.ToDictionary())
-                {
-                    propertyValues.Add(TcpPropertyValue.From(pair.Key, pair.Value));
-                }
-            }
-
-            return new TcpEnvelope
-            {
-                EndpointAddress = endpointAddress,
-                Payload = message.Payload ?? Array.Empty<byte>(),
-                Properties = propertyValues,
-                SenderSessionId = message.SenderSessionId,
-                Tag = message.Tag,
-                TargetSessionId = targetSessionId ?? string.Empty
-            };
-        }
-
-        private void HandleIncomingEnvelope(TcpConnectionContext connection, TcpEnvelope envelope)
+        private void HandleIncomingEnvelope(TcpConnectionContext connection, TransportEnvelope envelope)
         {
             if (!string.IsNullOrWhiteSpace(envelope.SenderSessionId))
             {
@@ -153,18 +127,7 @@ namespace Dcs.RabbitMq.Messaging.Tcp
                 _connectionsBySessionId[envelope.SenderSessionId] = connection;
             }
 
-            var properties = new MessageProperties();
-            foreach (var property in envelope.Properties ?? Enumerable.Empty<TcpPropertyValue>())
-            {
-                property.ApplyTo(properties);
-            }
-
-            var message = new Message(
-                envelope.SenderSessionId ?? string.Empty,
-                envelope.Tag ?? string.Empty,
-                properties,
-                envelope.Payload ?? Array.Empty<byte>());
-
+            var message = TransportEnvelopeFactory.ToMessage(envelope);
             _incomingMessages.OnNext(new IncomingTransportMessage(envelope.EndpointAddress, envelope.TargetSessionId, message));
         }
 
@@ -174,7 +137,7 @@ namespace Dcs.RabbitMq.Messaging.Tcp
             {
                 while (!_shutdown.IsCancellationRequested)
                 {
-                    var envelope = await ReadEnvelopeAsync(connection.Stream, _shutdown.Token).ConfigureAwait(false);
+                    var envelope = await TransportTcpFraming.ReadEnvelopeAsync(connection.Stream, _shutdown.Token).ConfigureAwait(false);
                     if (envelope == null)
                     {
                         break;
@@ -216,60 +179,6 @@ namespace Dcs.RabbitMq.Messaging.Tcp
             }
         }
 
-        private static async Task<TcpEnvelope> ReadEnvelopeAsync(NetworkStream stream, CancellationToken cancellationToken)
-        {
-            var header = await ReadExactAsync(stream, 4, cancellationToken).ConfigureAwait(false);
-            if (header == null)
-            {
-                return null;
-            }
-
-            var payloadLength = BinaryPrimitives.ReadInt32BigEndian(header);
-            if (payloadLength <= 0)
-            {
-                return null;
-            }
-
-            var payload = await ReadExactAsync(stream, payloadLength, cancellationToken).ConfigureAwait(false);
-            if (payload == null)
-            {
-                return null;
-            }
-
-            using var payloadStream = new MemoryStream(payload, writable: false);
-            return Serializer.Deserialize<TcpEnvelope>(payloadStream);
-        }
-
-        private static async Task<byte[]> ReadExactAsync(NetworkStream stream, int length, CancellationToken cancellationToken)
-        {
-            var buffer = new byte[length];
-            var offset = 0;
-
-            while (offset < length)
-            {
-                var read = await stream.ReadAsync(buffer, offset, length - offset, cancellationToken).ConfigureAwait(false);
-                if (read == 0)
-                {
-                    return null;
-                }
-
-                offset += read;
-            }
-
-            return buffer;
-        }
-
-        private static byte[] SerializeEnvelope(TcpEnvelope envelope)
-        {
-            using var payloadStream = new MemoryStream();
-            Serializer.Serialize(payloadStream, envelope);
-            var payload = payloadStream.ToArray();
-            var frame = new byte[4 + payload.Length];
-            BinaryPrimitives.WriteInt32BigEndian(frame.AsSpan(0, 4), payload.Length);
-            Buffer.BlockCopy(payload, 0, frame, 4, payload.Length);
-            return frame;
-        }
-
         private void StartServer()
         {
             var ipAddress = IPAddress.Parse(_options.Host);
@@ -294,22 +203,6 @@ namespace Dcs.RabbitMq.Messaging.Tcp
             catch (ObjectDisposedException)
             {
             }
-        }
-
-        private sealed class IncomingTransportMessage
-        {
-            public IncomingTransportMessage(string endpointAddress, string targetSessionId, IMessage message)
-            {
-                EndpointAddress = endpointAddress;
-                TargetSessionId = targetSessionId;
-                Message = message;
-            }
-
-            public string EndpointAddress { get; }
-
-            public IMessage Message { get; }
-
-            public string TargetSessionId { get; }
         }
 
         private sealed class TcpConnectionContext : IDisposable
@@ -355,84 +248,6 @@ namespace Dcs.RabbitMq.Messaging.Tcp
             public void SetRemoteSessionId(string remoteSessionId)
             {
                 RemoteSessionId = remoteSessionId;
-            }
-        }
-
-        [ProtoContract]
-        private sealed class TcpEnvelope
-        {
-            [ProtoMember(1)]
-            public string EndpointAddress { get; set; }
-
-            [ProtoMember(2)]
-            public string SenderSessionId { get; set; }
-
-            [ProtoMember(3)]
-            public string TargetSessionId { get; set; }
-
-            [ProtoMember(4)]
-            public string Tag { get; set; }
-
-            [ProtoMember(5)]
-            public List<TcpPropertyValue> Properties { get; set; }
-
-            [ProtoMember(6)]
-            public byte[] Payload { get; set; }
-        }
-
-        [ProtoContract]
-        private sealed class TcpPropertyValue
-        {
-            [ProtoMember(1)]
-            public string BoolValue { get; set; }
-
-            [ProtoMember(2)]
-            public string DoubleValue { get; set; }
-
-            [ProtoMember(3)]
-            public string IntValue { get; set; }
-
-            [ProtoMember(4)]
-            public string Key { get; set; }
-
-            [ProtoMember(5)]
-            public string Kind { get; set; }
-
-            [ProtoMember(6)]
-            public string StringValue { get; set; }
-
-            public void ApplyTo(MessageProperties properties)
-            {
-                switch (Kind)
-                {
-                    case "bool":
-                        properties.Set(Key, bool.Parse(BoolValue));
-                        break;
-                    case "double":
-                        properties.Set(Key, double.Parse(DoubleValue, System.Globalization.CultureInfo.InvariantCulture));
-                        break;
-                    case "int":
-                        properties.Set(Key, int.Parse(IntValue, System.Globalization.CultureInfo.InvariantCulture));
-                        break;
-                    default:
-                        properties.Set(Key, StringValue);
-                        break;
-                }
-            }
-
-            public static TcpPropertyValue From(string key, object value)
-            {
-                switch (value)
-                {
-                    case bool boolValue:
-                        return new TcpPropertyValue { BoolValue = boolValue.ToString(), Key = key, Kind = "bool" };
-                    case double doubleValue:
-                        return new TcpPropertyValue { DoubleValue = doubleValue.ToString(System.Globalization.CultureInfo.InvariantCulture), Key = key, Kind = "double" };
-                    case int intValue:
-                        return new TcpPropertyValue { IntValue = intValue.ToString(System.Globalization.CultureInfo.InvariantCulture), Key = key, Kind = "int" };
-                    default:
-                        return new TcpPropertyValue { Key = key, Kind = "string", StringValue = Convert.ToString(value) };
-                }
             }
         }
     }

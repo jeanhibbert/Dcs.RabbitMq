@@ -1,13 +1,13 @@
-﻿using Dcs.RabbitMq.Common;
+using Dcs.RabbitMq.Common;
 using Dcs.RabbitMq.Common.Dto;
+using Dcs.RabbitMq.Messaging.Grpc;
 using Dcs.RabbitMq.Messaging.Messaging;
-using Dcs.RabbitMq.Messaging.Tcp;
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 
-namespace Dcs.RabbitMq.SkeletonClientApp
+namespace Dcs.RabbitMq.SkeletonClientApp.Grpc
 {
     internal static class Program
     {
@@ -15,13 +15,13 @@ namespace Dcs.RabbitMq.SkeletonClientApp
         {
             var clientId = Guid.NewGuid().ToString();
             var endpointDetailsProvider = new TestEndpointDetailsProvider();
-            var sessionOptions = TcpSessionOptions.CreateClient("127.0.0.1", 5050, clientId);
-            var sessionBuilder = new TcpMessagingSessionBuilder("ClientApp", endpointDetailsProvider, sessionOptions);
+            var sessionOptions = GrpcSessionOptions.CreateClient("http://127.0.0.1:5050", clientId);
+            var sessionBuilder = new GrpcMessagingSessionBuilder("ClientApp", endpointDetailsProvider, sessionOptions);
 
             using (sessionBuilder.MessagingTransport)
             using (var alertSubscription = SubscribeToAlerts(sessionBuilder))
             {
-                Console.WriteLine("Client connected with session {0}", clientId);
+                Console.WriteLine("[gRPC] Client connected with session {0}", clientId);
                 RequestPricing(sessionBuilder, clientId);
                 Console.WriteLine("Press ENTER to stop client...");
                 Console.ReadLine();
