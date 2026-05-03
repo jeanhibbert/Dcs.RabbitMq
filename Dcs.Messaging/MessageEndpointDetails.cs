@@ -1,7 +1,6 @@
-using Dcs.RabbitMq.Messaging.Messaging;
 using System;
 
-namespace Dcs.RabbitMq.Messaging
+namespace Dcs.Messaging
 {
     public sealed class MessageEndpointDetails : IEndpointDetails
     {

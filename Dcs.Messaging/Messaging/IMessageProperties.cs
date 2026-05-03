@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
-namespace Dcs.RabbitMq.Messaging.Messaging
+namespace Dcs.Messaging
 {
     public interface IMessageProperties
     {

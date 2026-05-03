@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-namespace Dcs.RabbitMq.Messaging.ServiceModel
+namespace Dcs.Messaging.ServiceModel
 {
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     public abstract class OperationAttribute : Attribute

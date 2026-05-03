@@ -1,7 +1,6 @@
-using Dcs.RabbitMq.Messaging.Messaging;
-using Dcs.RabbitMq.Messaging.Serialization;
+using Dcs.Messaging.Serialization;
 
-namespace Dcs.RabbitMq.Messaging
+namespace Dcs.Messaging
 {
     public sealed class TcpMessagingService : MessagingServiceBase
     {

@@ -1,8 +1,8 @@
-using Dcs.RabbitMq.Messaging.Messaging;
-using Dcs.RabbitMq.Messaging.Serialization;
+using Dcs.Messaging;
+using Dcs.Messaging.Serialization;
 using System;
 
-namespace Dcs.RabbitMq.Messaging.RequestResponse
+namespace Dcs.Messaging.RequestResponse
 {
     internal sealed class RespondableRequest<TRequest, TResponse> : IRespondableRequest<TRequest, TResponse>
     {

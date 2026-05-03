@@ -1,7 +1,7 @@
 using ProtoBuf;
 using System.Collections.Generic;
 
-namespace Dcs.RabbitMq.Messaging.Transport
+namespace Dcs.Messaging.Transport
 {
     [ProtoContract]
     public sealed class TransportEnvelope

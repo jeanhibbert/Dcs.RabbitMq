@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-namespace Dcs.RabbitMq.Messaging.Messaging
+namespace Dcs.Messaging
 {
     public interface IEndpointDetails : IEquatable<IEndpointDetails>
     {

@@ -1,7 +1,7 @@
-using Dcs.RabbitMq.Messaging.Messaging;
-using Dcs.RabbitMq.Messaging.Tcp;
+using Dcs.Messaging;
+using Dcs.Messaging.Tcp;
 
-namespace Dcs.RabbitMq.Common
+namespace Dcs.Messaging.Common
 {
     public sealed class TcpMessagingSessionBuilder : MessagingSessionBuilderBase
     {

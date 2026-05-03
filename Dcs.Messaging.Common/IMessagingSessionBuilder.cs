@@ -1,9 +1,9 @@
-using Dcs.RabbitMq.Messaging.Messaging;
-using Dcs.RabbitMq.Messaging.RequestResponse;
-using Dcs.RabbitMq.Messaging.Serialization;
+using Dcs.Messaging;
+using Dcs.Messaging.RequestResponse;
+using Dcs.Messaging.Serialization;
 using System;
 
-namespace Dcs.RabbitMq.Common
+namespace Dcs.Messaging.Common
 {
     public interface IMessagingSessionBuilder
     {

@@ -1,9 +1,9 @@
-using Dcs.RabbitMq.Messaging.Messaging;
+using Dcs.Messaging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Dcs.RabbitMq.Messaging.Transport
+namespace Dcs.Messaging.Transport
 {
     internal static class TransportEnvelopeFactory
     {

@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
-namespace Dcs.RabbitMq.Messaging.Extensions
+namespace Dcs.Messaging.Extensions
 {
     public static class ObservableExtensions
     {

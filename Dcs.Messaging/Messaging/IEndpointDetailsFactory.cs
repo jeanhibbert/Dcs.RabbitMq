@@ -1,4 +1,4 @@
-﻿namespace Dcs.RabbitMq.Messaging.Messaging
+namespace Dcs.Messaging
 {
     public interface IEndpointDetailsFactory
     {

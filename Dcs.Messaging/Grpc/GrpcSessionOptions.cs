@@ -1,4 +1,4 @@
-namespace Dcs.RabbitMq.Messaging.Grpc
+namespace Dcs.Messaging.Grpc
 {
     /// <summary>
     /// Options for a gRPC messaging session. Use an HTTP(S) base URL such as <c>http://127.0.0.1:5050</c>.

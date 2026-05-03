@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-namespace Dcs.RabbitMq.Messaging.Messaging
+namespace Dcs.Messaging
 {
     public sealed class MessageStream : IMessageStream
     {

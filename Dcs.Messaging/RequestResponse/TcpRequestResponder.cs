@@ -1,10 +1,10 @@
-using Dcs.RabbitMq.Messaging.Messaging;
-using Dcs.RabbitMq.Messaging.Serialization;
+using Dcs.Messaging;
+using Dcs.Messaging.Serialization;
 using System;
 using System.Linq;
 using System.Reactive.Linq;
 
-namespace Dcs.RabbitMq.Messaging.RequestResponse
+namespace Dcs.Messaging.RequestResponse
 {
     public sealed class TcpRequestResponder : IRequestResponder
     {

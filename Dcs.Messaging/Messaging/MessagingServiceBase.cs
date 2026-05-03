@@ -1,11 +1,11 @@
-﻿using Dcs.RabbitMq.Messaging.Extensions;
-using Dcs.RabbitMq.Messaging.Serialization;
+using Dcs.Messaging.Extensions;
+using Dcs.Messaging.Serialization;
 using System;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 
-namespace Dcs.RabbitMq.Messaging.Messaging
+namespace Dcs.Messaging
 {
     public abstract class MessagingServiceBase : IMessagingService
     {

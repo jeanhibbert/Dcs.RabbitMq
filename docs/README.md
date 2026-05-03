@@ -1,10 +1,11 @@
-# Dcs.RabbitMq Messaging Framework
+# Dcs.Messaging
 
-A protocol-agnostic messaging framework for .NET that supports **TCP** and **gRPC** transports with a unified API. Application code is written against abstractions; switching transport is a one-line builder change.
+Dcs.Messaging is a protocol-agnostic .NET messaging framework that supports **TCP** and **gRPC** transports with a unified API. Application code is written against abstractions; switching transport is a one-line builder change.
 
 ## Table of Contents
 
 - [Solution Structure](#solution-structure)
+- [Namespace Overview](#namespace-overview)
 - [Architecture Overview](#architecture-overview)
 - [Getting Started](#getting-started)
 - [Transports](#transports)
@@ -17,8 +18,8 @@ A protocol-agnostic messaging framework for .NET that supports **TCP** and **gRP
 ```mermaid
 graph TD
     subgraph core [Core Libraries]
-        MSG["Dcs.RabbitMq.Messaging<br/>Transport abstractions, TCP impl,<br/>gRPC impl, serialization"]
-        CMN["Dcs.RabbitMq.Common<br/>Builder hierarchy, DTOs,<br/>endpoint config"]
+        MSG["Dcs.Messaging<br/>Transport abstractions, TCP impl,<br/>gRPC impl, serialization"]
+        CMN["Dcs.Messaging.Common<br/>Builder hierarchy, DTOs,<br/>endpoint config"]
     end
 
     subgraph tcpApps [TCP Sample Apps]
@@ -32,7 +33,7 @@ graph TD
     end
 
     subgraph tests [Tests]
-        UT["Dcs.RabbitMq.UnitTests<br/>(xUnit)"]
+        UT["Dcs.Messaging.UnitTests<br/>(xUnit)"]
     end
 
     CMN --> MSG
@@ -47,13 +48,28 @@ graph TD
 
 | Project | Description |
 |---------|-------------|
-| **Dcs.RabbitMq.Messaging** | Core library: transport abstractions (`IMessagingService`, `IEndpoint`, `IEndpointProvider`), TCP and gRPC session implementations, protobuf serialization, shared `TransportEnvelope` wire format. |
-| **Dcs.RabbitMq.Common** | Composition root: `IMessagingSessionBuilder` interface, `MessagingSessionBuilderBase` abstract class, `TcpMessagingSessionBuilder`, `GrpcMessagingSessionBuilder`, DTOs, and endpoint configuration. |
-| **Dcs.RabbitMq.SkeletonServerApp** | Sample TCP server demonstrating alerts (pub/sub) and pricing (request/response). |
-| **Dcs.RabbitMq.SkeletonClientApp** | Sample TCP client that subscribes to alerts and requests pricing. |
-| **Dcs.RabbitMq.SkeletonServerApp.Grpc** | Same server functionality over gRPC. Reuses the service classes from the TCP server project. |
-| **Dcs.RabbitMq.SkeletonClientApp.Grpc** | Same client functionality over gRPC. |
-| **Dcs.RabbitMq.UnitTests** | xUnit tests covering transport types, serialization, and builder wiring. |
+| **Dcs.Messaging** | Core library: transport abstractions (`IMessagingService`, `IEndpoint`, `IEndpointProvider`), TCP and gRPC session implementations, protobuf serialization, shared `TransportEnvelope` wire format. |
+| **Dcs.Messaging.Common** | Composition root: `IMessagingSessionBuilder` interface, `MessagingSessionBuilderBase` abstract class, `TcpMessagingSessionBuilder`, `GrpcMessagingSessionBuilder`, DTOs, and endpoint configuration. |
+| **Dcs.Messaging.SkeletonServerApp** | Sample TCP server demonstrating alerts (pub/sub) and pricing (request/response). |
+| **Dcs.Messaging.SkeletonClientApp** | Sample TCP client that subscribes to alerts and requests pricing. |
+| **Dcs.Messaging.SkeletonServerApp.Grpc** | Same server functionality over gRPC. Reuses the service classes from the TCP server project. |
+| **Dcs.Messaging.SkeletonClientApp.Grpc** | Same client functionality over gRPC. |
+| **Dcs.Messaging.UnitTests** | xUnit tests covering transport types, serialization, and builder wiring. |
+
+---
+
+## Namespace Overview
+
+| Namespace | Purpose |
+|-----------|---------|
+| `Dcs.Messaging` | Core public abstractions and shared message types, including `IMessagingService`, `IMessage`, `IEndpoint`, `IEndpointDetails`, `MessageFactory`, and `TransportPropertyKeys`. |
+| `Dcs.Messaging.Tcp` | TCP transport sessions, endpoints, endpoint providers, and TCP session options. |
+| `Dcs.Messaging.Grpc` | gRPC transport sessions, endpoint providers, service contracts, and gRPC session options. |
+| `Dcs.Messaging.RequestResponse` | Request/response correlation interfaces and responder implementation. |
+| `Dcs.Messaging.Serialization` | Binary serializer abstractions and protobuf-net serializer. |
+| `Dcs.Messaging.ServiceModel` | Attribute-based service model helpers. |
+| `Dcs.Messaging.Commanding` | Command stream abstractions. |
+| `Dcs.Messaging.Common` | Sample composition helpers, builders, DTOs, and endpoint configuration used by the skeleton apps. |
 
 ---
 
@@ -77,13 +93,13 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed diagrams covering:
 ### Building
 
 ```bash
-dotnet build Dcs.RabbitMq.sln
+dotnet build Dcs.Messaging.sln
 ```
 
 ### Running Tests
 
 ```bash
-dotnet test Dcs.RabbitMq.sln
+dotnet test Dcs.Messaging.sln
 ```
 
 ### Quick Start (TCP)
@@ -168,20 +184,20 @@ In two separate terminals:
 
 ```bash
 # Terminal 1 - Server
-dotnet run --project Dcs.RabbitMq.SkeletonServerApp
+dotnet run --project Dcs.Messaging.SkeletonServerApp
 
 # Terminal 2 - Client
-dotnet run --project Dcs.RabbitMq.SkeletonClientApp
+dotnet run --project Dcs.Messaging.SkeletonClientApp
 ```
 
 ### gRPC pair
 
 ```bash
 # Terminal 1 - Server
-dotnet run --project Dcs.RabbitMq.SkeletonServerApp.Grpc
+dotnet run --project Dcs.Messaging.SkeletonServerApp.Grpc
 
 # Terminal 2 - Client
-dotnet run --project Dcs.RabbitMq.SkeletonClientApp.Grpc
+dotnet run --project Dcs.Messaging.SkeletonClientApp.Grpc
 ```
 
 > **Note:** Both TCP and gRPC samples default to port 5050. Do not run a TCP server and gRPC server simultaneously on the same port.

@@ -1,6 +1,6 @@
-using Dcs.RabbitMq.Messaging.Messaging;
+using Dcs.Messaging;
 
-namespace Dcs.RabbitMq.Messaging.Tcp
+namespace Dcs.Messaging.Tcp
 {
     internal sealed class TcpEndpoint : IEndpoint
     {

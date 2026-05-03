@@ -1,8 +1,7 @@
-﻿using Dcs.RabbitMq.Messaging;
-using Dcs.RabbitMq.Messaging.Messaging;
+using Dcs.Messaging;
 using System.Collections.Generic;
 
-namespace Dcs.RabbitMq.Common
+namespace Dcs.Messaging.Common
 {
     public class TestEndpointDetailsProvider : IEndpointDetailsProvider
     {

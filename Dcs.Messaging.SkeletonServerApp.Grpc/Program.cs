@@ -1,9 +1,9 @@
-using Dcs.RabbitMq.Common;
-using Dcs.RabbitMq.Messaging.Grpc;
-using Dcs.RabbitMq.SkeletonServerApp.Services;
+using Dcs.Messaging.Common;
+using Dcs.Messaging.Grpc;
+using Dcs.Messaging.SkeletonServerApp.Services;
 using System;
 
-namespace Dcs.RabbitMq.SkeletonServerApp.Grpc
+namespace Dcs.Messaging.SkeletonServerApp.Grpc
 {
     internal static class Program
     {

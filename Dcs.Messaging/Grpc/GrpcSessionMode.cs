@@ -1,4 +1,4 @@
-namespace Dcs.RabbitMq.Messaging.Grpc
+namespace Dcs.Messaging.Grpc
 {
     public enum GrpcSessionMode
     {

@@ -1,7 +1,7 @@
-using Dcs.RabbitMq.Messaging.Messaging;
-using Dcs.RabbitMq.Messaging.Transport;
+using Dcs.Messaging;
+using Dcs.Messaging.Transport;
 
-namespace Dcs.RabbitMq.UnitTests.Transport;
+namespace Dcs.Messaging.UnitTests.Transport;
 
 public class TransportPropertyValueTests
 {

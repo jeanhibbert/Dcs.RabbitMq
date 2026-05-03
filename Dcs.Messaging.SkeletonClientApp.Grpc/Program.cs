@@ -1,13 +1,13 @@
-using Dcs.RabbitMq.Common;
-using Dcs.RabbitMq.Common.Dto;
-using Dcs.RabbitMq.Messaging.Grpc;
-using Dcs.RabbitMq.Messaging.Messaging;
+using Dcs.Messaging.Common;
+using Dcs.Messaging.Common.Dto;
+using Dcs.Messaging.Grpc;
+using Dcs.Messaging;
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 
-namespace Dcs.RabbitMq.SkeletonClientApp.Grpc
+namespace Dcs.Messaging.SkeletonClientApp.Grpc
 {
     internal static class Program
     {

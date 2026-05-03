@@ -1,4 +1,4 @@
-﻿namespace Dcs.RabbitMq.Messaging.Serialization
+namespace Dcs.Messaging.Serialization
 {
     public interface IBinarySerializer
     {

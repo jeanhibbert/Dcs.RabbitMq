@@ -1,11 +1,11 @@
-﻿using Dcs.RabbitMq.Common;
-using Dcs.RabbitMq.Common.Dto;
-using Dcs.RabbitMq.Messaging.Messaging;
-using Dcs.RabbitMq.Messaging.Serialization;
+using Dcs.Messaging.Common;
+using Dcs.Messaging.Common.Dto;
+using Dcs.Messaging;
+using Dcs.Messaging.Serialization;
 using System;
 using System.Reactive.Linq;
 
-namespace Dcs.RabbitMq.SkeletonServerApp.Services
+namespace Dcs.Messaging.SkeletonServerApp.Services
 {
     public sealed class AlertService : IDisposable
     {

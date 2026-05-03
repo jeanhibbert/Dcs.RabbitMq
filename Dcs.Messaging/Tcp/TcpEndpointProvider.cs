@@ -1,8 +1,8 @@
-using Dcs.RabbitMq.Messaging.Messaging;
+using Dcs.Messaging;
 using System;
 using System.Collections.Concurrent;
 
-namespace Dcs.RabbitMq.Messaging.Tcp
+namespace Dcs.Messaging.Tcp
 {
     public sealed class TcpEndpointProvider : IEndpointProvider
     {

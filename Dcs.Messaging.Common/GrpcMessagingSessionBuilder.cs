@@ -1,7 +1,7 @@
-using Dcs.RabbitMq.Messaging.Grpc;
-using Dcs.RabbitMq.Messaging.Messaging;
+using Dcs.Messaging.Grpc;
+using Dcs.Messaging;
 
-namespace Dcs.RabbitMq.Common
+namespace Dcs.Messaging.Common
 {
     public sealed class GrpcMessagingSessionBuilder : MessagingSessionBuilderBase
     {

@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-namespace Dcs.RabbitMq.Messaging.RequestResponse
+namespace Dcs.Messaging.RequestResponse
 {
     public interface IRespondableRequest<out TRequest, in TResponse>
     {

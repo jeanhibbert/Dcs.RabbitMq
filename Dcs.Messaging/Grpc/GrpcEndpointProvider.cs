@@ -1,8 +1,8 @@
-using Dcs.RabbitMq.Messaging.Messaging;
+using Dcs.Messaging;
 using System;
 using System.Collections.Concurrent;
 
-namespace Dcs.RabbitMq.Messaging.Grpc
+namespace Dcs.Messaging.Grpc
 {
     public sealed class GrpcEndpointProvider : IEndpointProvider
     {

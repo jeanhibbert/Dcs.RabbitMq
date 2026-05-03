@@ -1,6 +1,6 @@
-using Dcs.RabbitMq.Messaging.Messaging;
+using Dcs.Messaging;
 
-namespace Dcs.RabbitMq.Messaging.Grpc
+namespace Dcs.Messaging.Grpc
 {
     internal sealed class GrpcEndpoint : IEndpoint
     {

@@ -1,6 +1,6 @@
-﻿using Dcs.RabbitMq.Messaging.Commanding;
-using Dcs.RabbitMq.Messaging.Messaging;
-using Dcs.RabbitMq.Messaging.RequestResponse;
+using Dcs.Messaging.Commanding;
+using Dcs.Messaging;
+using Dcs.Messaging.RequestResponse;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,7 +9,7 @@ using System.Reactive;
 using System.Reactive.Linq;
 using System.Reflection;
 
-namespace Dcs.RabbitMq.Messaging.ServiceModel
+namespace Dcs.Messaging.ServiceModel
 {
     public class CommandWrapper<T>
     {

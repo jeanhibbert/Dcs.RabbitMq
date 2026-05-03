@@ -6,7 +6,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Dcs.RabbitMq.Messaging.Transport
+namespace Dcs.Messaging.Transport
 {
     internal static class TransportTcpFraming
     {

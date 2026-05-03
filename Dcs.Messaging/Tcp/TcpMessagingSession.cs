@@ -1,5 +1,5 @@
-using Dcs.RabbitMq.Messaging.Messaging;
-using Dcs.RabbitMq.Messaging.Transport;
+using Dcs.Messaging;
+using Dcs.Messaging.Transport;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
@@ -11,7 +11,7 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Dcs.RabbitMq.Messaging.Tcp
+namespace Dcs.Messaging.Tcp
 {
     public sealed class TcpMessagingSession : IDisposable
     {

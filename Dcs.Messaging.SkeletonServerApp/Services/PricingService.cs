@@ -1,9 +1,9 @@
-using Dcs.RabbitMq.Common;
-using Dcs.RabbitMq.Common.Dto;
-using Dcs.RabbitMq.Messaging.RequestResponse;
+using Dcs.Messaging.Common;
+using Dcs.Messaging.Common.Dto;
+using Dcs.Messaging.RequestResponse;
 using System;
 
-namespace Dcs.RabbitMq.SkeletonServerApp.Services
+namespace Dcs.Messaging.SkeletonServerApp.Services
 {
     public sealed class PricingService : IDisposable
     {

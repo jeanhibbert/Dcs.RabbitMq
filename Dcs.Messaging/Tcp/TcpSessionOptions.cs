@@ -1,4 +1,4 @@
-namespace Dcs.RabbitMq.Messaging.Tcp
+namespace Dcs.Messaging.Tcp
 {
     public sealed class TcpSessionOptions
     {

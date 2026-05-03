@@ -1,6 +1,6 @@
 using System;
 
-namespace Dcs.RabbitMq.Messaging.Messaging
+namespace Dcs.Messaging
 {
     public sealed class MessageFactory : IMessageFactory
     {

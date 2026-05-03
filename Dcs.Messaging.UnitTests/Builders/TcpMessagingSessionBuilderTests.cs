@@ -1,7 +1,7 @@
-using Dcs.RabbitMq.Common;
-using Dcs.RabbitMq.Messaging.Tcp;
+using Dcs.Messaging.Common;
+using Dcs.Messaging.Tcp;
 
-namespace Dcs.RabbitMq.UnitTests.Builders;
+namespace Dcs.Messaging.UnitTests.Builders;
 
 public class TcpMessagingSessionBuilderTests : IDisposable
 {

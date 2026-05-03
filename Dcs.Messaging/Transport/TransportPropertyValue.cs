@@ -1,8 +1,8 @@
-using Dcs.RabbitMq.Messaging.Messaging;
+using Dcs.Messaging;
 using ProtoBuf;
 using System;
 
-namespace Dcs.RabbitMq.Messaging.Transport
+namespace Dcs.Messaging.Transport
 {
     [ProtoContract]
     public sealed class TransportPropertyValue

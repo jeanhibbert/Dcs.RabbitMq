@@ -4,13 +4,13 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
-    <RootNamespace>Dcs.RabbitMq.SkeletonClientApp.Grpc</RootNamespace>
-    <AssemblyName>Dcs.RabbitMq.SkeletonClientApp.Grpc</AssemblyName>
+    <RootNamespace>Dcs.Messaging.SkeletonClientApp.Grpc</RootNamespace>
+    <AssemblyName>Dcs.Messaging.SkeletonClientApp.Grpc</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Dcs.RabbitMq.Common\Dcs.RabbitMq.Common.csproj" />
-    <ProjectReference Include="..\Dcs.RabbitMq.Messaging\Dcs.RabbitMq.Messaging.csproj" />
+    <ProjectReference Include="..\Dcs.Messaging.Common\Dcs.Messaging.Common.csproj" />
+    <ProjectReference Include="..\Dcs.Messaging\Dcs.Messaging.csproj" />
   </ItemGroup>
 
   <ItemGroup>

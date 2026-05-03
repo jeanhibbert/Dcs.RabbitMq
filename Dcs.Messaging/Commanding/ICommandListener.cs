@@ -1,8 +1,8 @@
-﻿using Dcs.RabbitMq.Messaging.Messaging;
-using Dcs.RabbitMq.Messaging.ServiceModel;
+using Dcs.Messaging;
+using Dcs.Messaging.ServiceModel;
 using System;
 
-namespace Dcs.RabbitMq.Messaging.Commanding
+namespace Dcs.Messaging.Commanding
 {
     public interface ICommandListener
     {

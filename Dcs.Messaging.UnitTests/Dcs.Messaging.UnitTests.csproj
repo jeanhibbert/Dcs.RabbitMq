@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -19,8 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Dcs.RabbitMq.Messaging\Dcs.RabbitMq.Messaging.csproj" />
-    <ProjectReference Include="..\Dcs.RabbitMq.Common\Dcs.RabbitMq.Common.csproj" />
+    <ProjectReference Include="..\Dcs.Messaging\Dcs.Messaging.csproj" />
+    <ProjectReference Include="..\Dcs.Messaging.Common\Dcs.Messaging.Common.csproj" />
   </ItemGroup>
 
 </Project>

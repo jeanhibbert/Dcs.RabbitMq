@@ -1,4 +1,4 @@
-﻿namespace Dcs.RabbitMq.Messaging.ServiceModel
+namespace Dcs.Messaging.ServiceModel
 {
     public sealed class RequestContext
     {

@@ -1,7 +1,7 @@
-using Dcs.RabbitMq.Messaging.Transport;
+using Dcs.Messaging.Transport;
 using ProtoBuf;
 
-namespace Dcs.RabbitMq.UnitTests.Transport;
+namespace Dcs.Messaging.UnitTests.Transport;
 
 public class TransportEnvelopeSerializationTests
 {

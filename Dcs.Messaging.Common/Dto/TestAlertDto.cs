@@ -1,6 +1,6 @@
-﻿using ProtoBuf;
+using ProtoBuf;
 
-namespace Dcs.RabbitMq.Common.Dto
+namespace Dcs.Messaging.Common.Dto
 {
     [ProtoContract]
     public class TestAlertDto

@@ -1,15 +1,15 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <RootNamespace>Dcs.RabbitMq.Common</RootNamespace>
-    <AssemblyName>Dcs.RabbitMq.Common</AssemblyName>
+    <RootNamespace>Dcs.Messaging.Common</RootNamespace>
+    <AssemblyName>Dcs.Messaging.Common</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Dcs.RabbitMq.Messaging\Dcs.RabbitMq.Messaging.csproj" />
+    <ProjectReference Include="..\Dcs.Messaging\Dcs.Messaging.csproj" />
   </ItemGroup>
 
   <ItemGroup>

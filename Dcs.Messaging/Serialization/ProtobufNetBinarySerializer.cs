@@ -1,7 +1,7 @@
 using ProtoBuf;
 using System.IO;
 
-namespace Dcs.RabbitMq.Messaging.Serialization
+namespace Dcs.Messaging.Serialization
 {
     public sealed class ProtobufNetBinarySerializer : IBinarySerializer
     {

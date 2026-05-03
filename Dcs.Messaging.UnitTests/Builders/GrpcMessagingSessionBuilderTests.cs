@@ -1,7 +1,7 @@
-using Dcs.RabbitMq.Common;
-using Dcs.RabbitMq.Messaging.Grpc;
+using Dcs.Messaging.Common;
+using Dcs.Messaging.Grpc;
 
-namespace Dcs.RabbitMq.UnitTests.Builders;
+namespace Dcs.Messaging.UnitTests.Builders;
 
 public class GrpcMessagingSessionBuilderTests : IDisposable
 {

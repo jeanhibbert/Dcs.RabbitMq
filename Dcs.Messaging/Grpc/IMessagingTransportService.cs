@@ -1,9 +1,9 @@
-using Dcs.RabbitMq.Messaging.Transport;
+using Dcs.Messaging.Transport;
 using ProtoBuf.Grpc;
 using System.Collections.Generic;
 using System.ServiceModel;
 
-namespace Dcs.RabbitMq.Messaging.Grpc
+namespace Dcs.Messaging.Grpc
 {
     [ServiceContract]
     public interface IMessagingTransportService

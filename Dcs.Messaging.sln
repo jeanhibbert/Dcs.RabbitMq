@@ -1,21 +1,21 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dcs.RabbitMq.SkeletonClientApp", "Dcs.RabbitMq.SkeletonClientApp\Dcs.RabbitMq.SkeletonClientApp.csproj", "{85C747FC-D9A7-4152-8FF6-89A7182E4C89}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dcs.Messaging.SkeletonClientApp", "Dcs.Messaging.SkeletonClientApp\Dcs.Messaging.SkeletonClientApp.csproj", "{85C747FC-D9A7-4152-8FF6-89A7182E4C89}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dcs.RabbitMq.SkeletonServerApp", "Dcs.RabbitMq.SkeletonServerApp\Dcs.RabbitMq.SkeletonServerApp.csproj", "{C29C0255-1FC8-4A5B-861F-779614100321}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dcs.Messaging.SkeletonServerApp", "Dcs.Messaging.SkeletonServerApp\Dcs.Messaging.SkeletonServerApp.csproj", "{C29C0255-1FC8-4A5B-861F-779614100321}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dcs.RabbitMq.Messaging", "Dcs.RabbitMq.Messaging\Dcs.RabbitMq.Messaging.csproj", "{75068745-B8A1-4DFB-810B-B00E77FF63E1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dcs.Messaging", "Dcs.Messaging\Dcs.Messaging.csproj", "{75068745-B8A1-4DFB-810B-B00E77FF63E1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dcs.RabbitMq.Common", "Dcs.RabbitMq.Common\Dcs.RabbitMq.Common.csproj", "{6FEA8DFB-A98C-48B4-9D95-8404D29AAE00}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dcs.Messaging.Common", "Dcs.Messaging.Common\Dcs.Messaging.Common.csproj", "{6FEA8DFB-A98C-48B4-9D95-8404D29AAE00}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dcs.RabbitMq.UnitTests", "Dcs.RabbitMq.UnitTests\Dcs.RabbitMq.UnitTests.csproj", "{923E0D14-E5C7-4B99-8C1D-A0E5F7BC4140}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dcs.Messaging.UnitTests", "Dcs.Messaging.UnitTests\Dcs.Messaging.UnitTests.csproj", "{923E0D14-E5C7-4B99-8C1D-A0E5F7BC4140}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dcs.RabbitMq.SkeletonServerApp.Grpc", "Dcs.RabbitMq.SkeletonServerApp.Grpc\Dcs.RabbitMq.SkeletonServerApp.Grpc.csproj", "{0B475296-1B7C-41C3-A72D-D98CEB0580DE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dcs.Messaging.SkeletonServerApp.Grpc", "Dcs.Messaging.SkeletonServerApp.Grpc\Dcs.Messaging.SkeletonServerApp.Grpc.csproj", "{0B475296-1B7C-41C3-A72D-D98CEB0580DE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dcs.RabbitMq.SkeletonClientApp.Grpc", "Dcs.RabbitMq.SkeletonClientApp.Grpc\Dcs.RabbitMq.SkeletonClientApp.Grpc.csproj", "{2B2D2450-F8E3-4527-861C-F3D45E8C93A0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dcs.Messaging.SkeletonClientApp.Grpc", "Dcs.Messaging.SkeletonClientApp.Grpc\Dcs.Messaging.SkeletonClientApp.Grpc.csproj", "{2B2D2450-F8E3-4527-861C-F3D45E8C93A0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

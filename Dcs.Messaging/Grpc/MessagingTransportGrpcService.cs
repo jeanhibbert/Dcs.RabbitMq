@@ -1,8 +1,8 @@
-using Dcs.RabbitMq.Messaging.Transport;
+using Dcs.Messaging.Transport;
 using ProtoBuf.Grpc;
 using System.Collections.Generic;
 
-namespace Dcs.RabbitMq.Messaging.Grpc
+namespace Dcs.Messaging.Grpc
 {
     public sealed class MessagingTransportGrpcService : IMessagingTransportService
     {

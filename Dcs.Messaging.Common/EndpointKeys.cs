@@ -1,4 +1,4 @@
-namespace Dcs.RabbitMq.Common
+namespace Dcs.Messaging.Common
 {
     public static class EndpointKeys
     {

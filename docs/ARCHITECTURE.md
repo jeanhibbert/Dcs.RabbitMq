@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the internal architecture of the Dcs.RabbitMq messaging framework with diagrams illustrating how the components fit together.
+This document describes the internal architecture of Dcs.Messaging, with diagrams illustrating how the components fit together.
 
 ## Builder Class Hierarchy
 

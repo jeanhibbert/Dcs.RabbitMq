@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Dcs.RabbitMq.Messaging.Messaging
+namespace Dcs.Messaging
 {
     public sealed class MessageProperties : IMessageProperties
     {

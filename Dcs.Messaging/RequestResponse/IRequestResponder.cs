@@ -1,7 +1,7 @@
-﻿using Dcs.RabbitMq.Messaging.Messaging;
+using Dcs.Messaging;
 using System;
 
-namespace Dcs.RabbitMq.Messaging.RequestResponse
+namespace Dcs.Messaging.RequestResponse
 {
     public interface IRequestResponder
     {

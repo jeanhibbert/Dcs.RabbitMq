@@ -1,6 +1,6 @@
-using Dcs.RabbitMq.Messaging.Messaging;
+using Dcs.Messaging;
 
-namespace Dcs.RabbitMq.Messaging.Transport
+namespace Dcs.Messaging.Transport
 {
     internal sealed class IncomingTransportMessage
     {
