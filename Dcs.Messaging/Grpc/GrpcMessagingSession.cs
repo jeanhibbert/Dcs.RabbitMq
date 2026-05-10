@@ -1,4 +1,5 @@
 using Dcs.Messaging;
+using Dcs.Messaging.Resiliency;
 using Dcs.Messaging.Transport;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -11,7 +12,6 @@ using ProtoBuf.Grpc.Server;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -21,28 +21,59 @@ using System.Threading.Tasks;
 
 namespace Dcs.Messaging.Grpc
 {
-    public sealed class GrpcMessagingSession : IDisposable
+    /// <summary>
+    /// gRPC transport session with built-in resiliency:
+    /// <list type="bullet">
+    /// <item>Per-connection bounded outbound queues. Sends never throw on transport failure.</item>
+    /// <item>Client mode automatically restarts the bidirectional <c>Exchange</c>
+    /// stream on <see cref="RpcException"/> with exponential backoff via <see cref="IRetryPolicy"/>.</item>
+    /// <item>The in-flight envelope at the time of an exchange drop is requeued on
+    /// the next reconnect so a single network blip does not lose a message.</item>
+    /// <item>Connection state changes are observable via <see cref="StateChanged"/>.</item>
+    /// </list>
+    /// </summary>
+    public sealed class GrpcMessagingSession : IDisposable, IConnectionStateObserver
     {
         private readonly ISubject<IncomingTransportMessage> _incomingMessages;
         private readonly CancellationTokenSource _shutdown;
         private readonly ConcurrentDictionary<string, GrpcConnectionContext> _connectionsBySessionId;
         private readonly ConcurrentDictionary<long, GrpcConnectionContext> _connections;
         private readonly GrpcSessionOptions _options;
+        private readonly ResiliencyOptions _resiliency;
+        private readonly IRetryPolicy _retryPolicy;
+        private readonly IClock _clock;
+        private readonly BehaviorSubject<ConnectionState> _stateSubject;
+        private readonly object _clientInflightLock = new object();
         private readonly long _clientConnectionId = 1;
         private WebApplication _app;
-        private Task _clientExchangeTask;
+        private Task _supervisorTask;
         private GrpcConnectionContext _clientConnection;
-        private ChannelWriter<TransportEnvelope> _clientOutgoing;
+        private ChannelWriter<TransportEnvelope> _clientOutgoingWriter;
+        private ChannelReader<TransportEnvelope> _clientOutgoingReader;
         private GrpcChannel _grpcChannel;
+        private TransportEnvelope _clientInflight;
         private long _connectionCounter;
+        private int _disposed;
 
         public GrpcMessagingSession(GrpcSessionOptions options)
+            : this(options, retryPolicy: null, clock: null)
+        {
+        }
+
+        public GrpcMessagingSession(
+            GrpcSessionOptions options,
+            IRetryPolicy retryPolicy,
+            IClock clock)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
+            _resiliency = options.Resiliency ?? ResiliencyOptions.Default;
+            _retryPolicy = retryPolicy ?? new PollyRetryPolicy(_resiliency);
+            _clock = clock ?? SystemClock.Instance;
             _incomingMessages = Subject.Synchronize(new Subject<IncomingTransportMessage>());
             _shutdown = new CancellationTokenSource();
             _connectionsBySessionId = new ConcurrentDictionary<string, GrpcConnectionContext>(StringComparer.Ordinal);
             _connections = new ConcurrentDictionary<long, GrpcConnectionContext>();
+            _stateSubject = new BehaviorSubject<ConnectionState>(ConnectionState.Initializing);
 
             if (_options.Mode == GrpcSessionMode.Server)
             {
@@ -50,20 +81,35 @@ namespace Dcs.Messaging.Grpc
             }
             else
             {
-                ConnectClient();
+                var channel = CreateBoundedChannel<TransportEnvelope>(_resiliency, singleReader: true);
+                _clientOutgoingWriter = channel.Writer;
+                _clientOutgoingReader = channel.Reader;
+                _clientConnection = new GrpcConnectionContext(_clientConnectionId, _clientOutgoingWriter, _resiliency);
+                _connections[_clientConnection.Id] = _clientConnection;
+                _supervisorTask = Task.Run(() => SuperviseClientAsync(_shutdown.Token), CancellationToken.None);
             }
         }
 
         public string SessionId => _options.SessionId;
 
+        public ConnectionState CurrentState => _stateSubject.Value;
+
+        public IObservable<ConnectionState> StateChanged => _stateSubject.AsObservable();
+
         public void Dispose()
         {
-            if (_shutdown.IsCancellationRequested)
+            if (Interlocked.Exchange(ref _disposed, 1) != 0)
             {
                 return;
             }
 
-            _shutdown.Cancel();
+            try
+            {
+                _shutdown.Cancel();
+            }
+            catch
+            {
+            }
 
             if (_app != null)
             {
@@ -86,22 +132,57 @@ namespace Dcs.Messaging.Grpc
                 _app = null;
             }
 
-            if (_clientExchangeTask != null)
+            _clientOutgoingWriter?.TryComplete();
+
+            if (_supervisorTask != null)
             {
                 try
                 {
-                    _clientExchangeTask.GetAwaiter().GetResult();
+                    _supervisorTask.Wait(TimeSpan.FromSeconds(5));
                 }
                 catch
                 {
                 }
             }
 
-            _grpcChannel?.Dispose();
+            try
+            {
+                _grpcChannel?.Dispose();
+            }
+            catch
+            {
+            }
             _grpcChannel = null;
 
-            _incomingMessages.OnCompleted();
-            _shutdown.Dispose();
+            UpdateState(ConnectionState.Closed);
+            try
+            {
+                _stateSubject.OnCompleted();
+            }
+            catch
+            {
+            }
+            try
+            {
+                _stateSubject.Dispose();
+            }
+            catch
+            {
+            }
+            try
+            {
+                _incomingMessages.OnCompleted();
+            }
+            catch
+            {
+            }
+            try
+            {
+                _shutdown.Dispose();
+            }
+            catch
+            {
+            }
         }
 
         internal IAsyncEnumerable<TransportEnvelope> AttachConnection(
@@ -123,46 +204,82 @@ namespace Dcs.Messaging.Grpc
 
         internal void Send(IEndpointDetails endpointDetails, IMessage message, string targetSessionId)
         {
+            TrySend(endpointDetails, message, targetSessionId);
+        }
+
+        internal SendResult TrySend(IEndpointDetails endpointDetails, IMessage message, string targetSessionId)
+        {
+            if (_shutdown.IsCancellationRequested)
+            {
+                return SendResult.ShuttingDown;
+            }
+
             var envelope = TransportEnvelopeFactory.FromMessage(endpointDetails.Address, message, targetSessionId);
 
             if (_options.Mode == GrpcSessionMode.Client)
             {
-                if (_clientOutgoing == null)
-                {
-                    throw new InvalidOperationException("Client is not connected to a server endpoint.");
-                }
-
-                if (!_clientOutgoing.TryWrite(envelope))
-                {
-                    throw new InvalidOperationException("Unable to send: gRPC stream is not available.");
-                }
-
-                return;
+                return _clientOutgoingWriter != null && _clientOutgoingWriter.TryWrite(envelope)
+                    ? SendResult.Buffered
+                    : SendResult.QueueFull;
             }
 
             if (!string.IsNullOrEmpty(targetSessionId))
             {
-                if (_connectionsBySessionId.TryGetValue(targetSessionId, out var connection))
+                if (!_connectionsBySessionId.TryGetValue(targetSessionId, out var targeted))
                 {
-                    connection.TrySend(envelope);
+                    return SendResult.NoSuchTarget;
                 }
-
-                return;
+                return targeted.TryEnqueue(envelope) ? SendResult.Buffered : SendResult.QueueFull;
             }
 
+            if (_connections.IsEmpty)
+            {
+                return SendResult.NoSuchTarget;
+            }
+
+            var anyAccepted = false;
+            var anyRejected = false;
             foreach (var connection in _connections.Values)
             {
-                connection.TrySend(envelope);
+                if (connection.TryEnqueue(envelope))
+                {
+                    anyAccepted = true;
+                }
+                else
+                {
+                    anyRejected = true;
+                }
             }
+
+            if (anyAccepted)
+            {
+                return SendResult.Buffered;
+            }
+
+            return anyRejected ? SendResult.QueueFull : SendResult.NoSuchTarget;
+        }
+
+        private static Channel<T> CreateBoundedChannel<T>(ResiliencyOptions options, bool singleReader)
+        {
+            var capacity = options.OutboundQueueCapacity > 0 ? options.OutboundQueueCapacity : 1024;
+            var fullMode = options.DropOldestWhenQueueFull
+                ? BoundedChannelFullMode.DropOldest
+                : BoundedChannelFullMode.Wait;
+            return Channel.CreateBounded<T>(new BoundedChannelOptions(capacity)
+            {
+                FullMode = fullMode,
+                SingleReader = singleReader,
+                SingleWriter = false,
+            });
         }
 
         private async IAsyncEnumerable<TransportEnvelope> AttachConnectionCore(
             IAsyncEnumerable<TransportEnvelope> incoming,
             CallContext context)
         {
-            var outgoing = Channel.CreateUnbounded<TransportEnvelope>();
+            var perConnectionChannel = CreateBoundedChannel<TransportEnvelope>(_resiliency, singleReader: true);
             var id = Interlocked.Increment(ref _connectionCounter);
-            var connection = new GrpcConnectionContext(id, outgoing.Writer);
+            var connection = new GrpcConnectionContext(id, perConnectionChannel.Writer, _resiliency);
             _connections[id] = connection;
 
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token, context.CancellationToken);
@@ -178,9 +295,15 @@ namespace Dcs.Messaging.Grpc
                             HandleIncomingEnvelope(connection, env);
                         }
                     }
+                    catch (OperationCanceledException)
+                    {
+                    }
+                    catch
+                    {
+                    }
                     finally
                     {
-                        outgoing.Writer.TryComplete();
+                        perConnectionChannel.Writer.TryComplete();
                         RemoveConnection(connection);
                     }
                 },
@@ -188,39 +311,21 @@ namespace Dcs.Messaging.Grpc
 
             try
             {
-                await foreach (var env in outgoing.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+                await foreach (var env in perConnectionChannel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
                 {
                     yield return env;
                 }
             }
             finally
             {
-                await readTask.ConfigureAwait(false);
-            }
-        }
-
-        private void ConnectClient()
-        {
-            if (_options.EnableHttp2Unencrypted)
-            {
-                AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-            }
-
-            _grpcChannel = GrpcChannel.ForAddress(
-                _options.BaseUrl,
-                new GrpcChannelOptions
+                try
                 {
-                    HttpHandler = new SocketsHttpHandler
-                    {
-                        EnableMultipleHttp2Connections = true,
-                    },
-                });
-
-            var outgoingChannel = Channel.CreateUnbounded<TransportEnvelope>();
-            _clientOutgoing = outgoingChannel.Writer;
-            _clientConnection = new GrpcConnectionContext(_clientConnectionId, outgoingChannel.Writer);
-
-            _clientExchangeTask = Task.Run(() => RunClientExchangeAsync(outgoingChannel, _shutdown.Token), _shutdown.Token);
+                    await readTask.ConfigureAwait(false);
+                }
+                catch
+                {
+                }
+            }
         }
 
         private void HandleIncomingEnvelope(GrpcConnectionContext connection, TransportEnvelope envelope)
@@ -244,43 +349,182 @@ namespace Dcs.Messaging.Grpc
             }
         }
 
-        private async Task RunClientExchangeAsync(Channel<TransportEnvelope> outgoingChannel, CancellationToken cancellationToken)
+        private async Task SuperviseClientAsync(CancellationToken cancellationToken)
         {
-            var client = _grpcChannel.CreateGrpcService<IMessagingTransportService>();
+            EnsureClientChannel();
 
-            async IAsyncEnumerable<TransportEnvelope> OutgoingMessages()
+            while (!cancellationToken.IsCancellationRequested)
             {
-                await foreach (var env in outgoingChannel.Reader.ReadAllAsync(cancellationToken))
+                UpdateState(ConnectionState.Connecting);
+
+                var connected = await _retryPolicy.ExecuteAsync(
+                    async token =>
+                    {
+                        try
+                        {
+                            await RunClientExchangeOnceAsync(token).ConfigureAwait(false);
+                            return true;
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            throw;
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+                    },
+                    cancellationToken).ConfigureAwait(false);
+
+                if (!connected)
                 {
-                    yield return env;
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                    continue;
+                }
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                UpdateState(ConnectionState.Disconnected);
+                try
+                {
+                    await _clock.Delay(_resiliency.InitialBackoff, cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
                 }
             }
 
+            UpdateState(ConnectionState.Closed);
+        }
+
+        private void EnsureClientChannel()
+        {
+            if (_grpcChannel != null)
+            {
+                return;
+            }
+
+            if (_options.EnableHttp2Unencrypted)
+            {
+                AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+            }
+
+            _grpcChannel = GrpcChannel.ForAddress(
+                _options.BaseUrl,
+                new GrpcChannelOptions
+                {
+                    HttpHandler = new SocketsHttpHandler
+                    {
+                        EnableMultipleHttp2Connections = true,
+                    },
+                });
+        }
+
+        private async Task RunClientExchangeOnceAsync(CancellationToken cancellationToken)
+        {
+            EnsureClientChannel();
+            var transport = _grpcChannel.CreateGrpcService<IMessagingTransportService>();
+
+            TransportEnvelope inflight;
+            lock (_clientInflightLock)
+            {
+                inflight = _clientInflight;
+                _clientInflight = null;
+            }
+
+            async IAsyncEnumerable<TransportEnvelope> OutgoingMessages()
+            {
+                if (inflight != null)
+                {
+                    var first = inflight;
+                    inflight = null;
+                    yield return first;
+                }
+
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    TransportEnvelope env;
+                    var hasMore = await _clientOutgoingReader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
+                    if (!hasMore)
+                    {
+                        yield break;
+                    }
+                    if (!_clientOutgoingReader.TryRead(out env))
+                    {
+                        continue;
+                    }
+
+                    lock (_clientInflightLock)
+                    {
+                        _clientInflight = env;
+                    }
+
+                    yield return env;
+
+                    lock (_clientInflightLock)
+                    {
+                        if (ReferenceEquals(_clientInflight, env))
+                        {
+                            _clientInflight = null;
+                        }
+                    }
+                }
+            }
+
+            UpdateState(ConnectionState.Connected);
+
             try
             {
-                await foreach (var env in client.Exchange(OutgoingMessages(), new CallContext(new CallOptions(cancellationToken: cancellationToken))).WithCancellation(cancellationToken).ConfigureAwait(false))
+                await foreach (var env in transport
+                    .Exchange(OutgoingMessages(), new CallContext(new CallOptions(cancellationToken: cancellationToken)))
+                    .WithCancellation(cancellationToken)
+                    .ConfigureAwait(false))
                 {
                     HandleIncomingEnvelope(_clientConnection, env);
                 }
             }
-            finally
+            catch
             {
-                outgoingChannel.Writer.TryComplete();
+                if (inflight != null)
+                {
+                    lock (_clientInflightLock)
+                    {
+                        _clientInflight ??= inflight;
+                    }
+                }
+                throw;
             }
         }
 
         private void StartServer()
         {
-            var builder = WebApplication.CreateBuilder();
-            builder.Services.AddSingleton<GrpcMessagingSession>(_ => this);
-            builder.Services.AddSingleton<MessagingTransportGrpcService>();
-            builder.Services.AddGrpc();
-            builder.Services.AddCodeFirstGrpc();
-            ConfigureKestrel(builder, _options.BaseUrl);
+            UpdateState(ConnectionState.Connecting);
+            try
+            {
+                var builder = WebApplication.CreateBuilder();
+                builder.Services.AddSingleton<GrpcMessagingSession>(_ => this);
+                builder.Services.AddSingleton<MessagingTransportGrpcService>();
+                builder.Services.AddGrpc();
+                builder.Services.AddCodeFirstGrpc();
+                ConfigureKestrel(builder, _options.BaseUrl);
 
-            _app = builder.Build();
-            _app.MapGrpcService<MessagingTransportGrpcService>();
-            _ = _app.RunAsync();
+                _app = builder.Build();
+                _app.MapGrpcService<MessagingTransportGrpcService>();
+                _ = _app.RunAsync();
+                UpdateState(ConnectionState.Connected);
+            }
+            catch
+            {
+                UpdateState(ConnectionState.Closed);
+                throw;
+            }
         }
 
         private static void ConfigureKestrel(WebApplicationBuilder builder, string baseUrl)
@@ -309,17 +553,32 @@ namespace Dcs.Messaging.Grpc
                 });
         }
 
+        private void UpdateState(ConnectionState newState)
+        {
+            try
+            {
+                if (_stateSubject.Value == newState)
+                {
+                    return;
+                }
+                _stateSubject.OnNext(newState);
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+
         private sealed class GrpcConnectionContext
         {
-            public GrpcConnectionContext(long id, ChannelWriter<TransportEnvelope> outgoingWriter)
+            private readonly ChannelWriter<TransportEnvelope> _outgoingWriter;
+
+            public GrpcConnectionContext(long id, ChannelWriter<TransportEnvelope> outgoingWriter, ResiliencyOptions resiliency)
             {
                 Id = id;
-                OutgoingWriter = outgoingWriter;
+                _outgoingWriter = outgoingWriter;
             }
 
             public long Id { get; }
-
-            public ChannelWriter<TransportEnvelope> OutgoingWriter { get; }
 
             public string RemoteSessionId { get; private set; }
 
@@ -328,9 +587,9 @@ namespace Dcs.Messaging.Grpc
                 RemoteSessionId = remoteSessionId;
             }
 
-            public void TrySend(TransportEnvelope envelope)
+            public bool TryEnqueue(TransportEnvelope envelope)
             {
-                OutgoingWriter.TryWrite(envelope);
+                return _outgoingWriter != null && _outgoingWriter.TryWrite(envelope);
             }
         }
     }

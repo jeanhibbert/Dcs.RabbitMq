@@ -1,4 +1,5 @@
 using Dcs.Messaging;
+using Dcs.Messaging.Resiliency;
 
 namespace Dcs.Messaging.Tcp
 {
@@ -18,6 +19,11 @@ namespace Dcs.Messaging.Tcp
         public void Send(IMessage message, string sessionId = null)
         {
             _session.Send(_endpointDetails, message, sessionId);
+        }
+
+        public SendResult TrySend(IMessage message, string sessionId = null)
+        {
+            return _session.TrySend(_endpointDetails, message, sessionId);
         }
     }
 }

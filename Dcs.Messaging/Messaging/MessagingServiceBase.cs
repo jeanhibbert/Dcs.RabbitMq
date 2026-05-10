@@ -1,4 +1,5 @@
 using Dcs.Messaging.Extensions;
+using Dcs.Messaging.Resiliency;
 using Dcs.Messaging.Serialization;
 using System;
 using System.Linq;
@@ -27,6 +28,14 @@ namespace Dcs.Messaging
                 endpoint.Send(message, targetSessionId);
                 return new Unit();
             });
+        }
+
+        public SendResult TrySend(
+            IMessage message,
+            IEndpointDetails endpointDetails,
+            string targetSessionId = null)
+        {
+            return _endpointProvider.GetEndpoint(endpointDetails).TrySend(message, targetSessionId);
         }
 
         public IObservable<IMessageStream> GetMessageStream(IEndpointDetails endpointDetails)

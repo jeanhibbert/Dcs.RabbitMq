@@ -1,4 +1,5 @@
 using Dcs.Messaging;
+using Dcs.Messaging.Resiliency;
 
 namespace Dcs.Messaging.Grpc
 {
@@ -19,5 +20,11 @@ namespace Dcs.Messaging.Grpc
         {
             _session.Send(_endpointDetails, message, sessionId);
         }
+
+        public SendResult TrySend(IMessage message, string sessionId = null)
+        {
+            return _session.TrySend(_endpointDetails, message, sessionId);
+        }
     }
 }
+

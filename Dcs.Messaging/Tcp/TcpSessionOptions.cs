@@ -1,8 +1,10 @@
+using Dcs.Messaging.Resiliency;
+
 namespace Dcs.Messaging.Tcp
 {
     public sealed class TcpSessionOptions
     {
-        private TcpSessionOptions()
+        public TcpSessionOptions()
         {
         }
 
@@ -13,6 +15,11 @@ namespace Dcs.Messaging.Tcp
         public int Port { get; set; }
 
         public string SessionId { get; set; }
+
+        /// <summary>
+        /// Resiliency tuning. Defaults to <see cref="ResiliencyOptions.Default"/>.
+        /// </summary>
+        public ResiliencyOptions Resiliency { get; set; } = ResiliencyOptions.Default;
 
         public static TcpSessionOptions CreateClient(string host, int port, string sessionId)
         {
