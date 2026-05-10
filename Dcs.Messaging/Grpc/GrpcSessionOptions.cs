@@ -1,3 +1,5 @@
+using Dcs.Messaging.Resiliency;
+
 namespace Dcs.Messaging.Grpc
 {
     /// <summary>
@@ -7,7 +9,7 @@ namespace Dcs.Messaging.Grpc
     /// </summary>
     public sealed class GrpcSessionOptions
     {
-        private GrpcSessionOptions()
+        public GrpcSessionOptions()
         {
         }
 
@@ -25,6 +27,11 @@ namespace Dcs.Messaging.Grpc
         public GrpcSessionMode Mode { get; set; }
 
         public string SessionId { get; set; }
+
+        /// <summary>
+        /// Resiliency tuning. Defaults to <see cref="ResiliencyOptions.Default"/>.
+        /// </summary>
+        public ResiliencyOptions Resiliency { get; set; } = ResiliencyOptions.Default;
 
         public static GrpcSessionOptions CreateClient(string baseUrl, string sessionId)
         {

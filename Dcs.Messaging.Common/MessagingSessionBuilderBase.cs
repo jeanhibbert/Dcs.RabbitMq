@@ -2,11 +2,14 @@ using Dcs.Messaging;
 using Dcs.Messaging.RequestResponse;
 using Dcs.Messaging.Serialization;
 using System;
+using System.Threading;
 
 namespace Dcs.Messaging.Common
 {
-    public abstract class MessagingSessionBuilderBase : IMessagingSessionBuilder
+    public abstract class MessagingSessionBuilderBase : IMessagingSessionBuilder, IDisposable
     {
+        private int _disposed;
+
         protected MessagingSessionBuilderBase(
             string sessionName,
             IEndpointDetailsProvider endpointDetailsProvider,
@@ -37,5 +40,21 @@ namespace Dcs.Messaging.Common
         public IRequestResponder RequestResponder { get; }
 
         public IBinarySerializer Serializer { get; }
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            {
+                return;
+            }
+            try
+            {
+                MessagingTransport?.Dispose();
+            }
+            catch
+            {
+            }
+        }
     }
 }
+

@@ -271,3 +271,154 @@ The framework is designed to be extensible. To add a new transport (e.g. WebSock
 3. Create a new builder class extending `MessagingSessionBuilderBase`, passing your session and endpoint provider to the base constructor.
 
 No existing code needs to change -- the Open/Closed principle is preserved by the builder hierarchy.
+
+For resiliency, accept `IRetryPolicy` and `IClock` parameters in your session
+constructor and use the same outbound-queue + supervisor pattern described
+below.
+
+---
+
+## Resiliency
+
+Both transports share the same resiliency model: a persistent outbound queue,
+an automatic reconnect supervisor (client mode only), and structured
+`SendResult` outcomes instead of exceptions.
+
+### Component diagram
+
+```mermaid
+classDiagram
+    class IConnectionStateObserver {
+        <<interface>>
+        +ConnectionState CurrentState
+        +IObservable~ConnectionState~ StateChanged
+    }
+
+    class IRetryPolicy {
+        <<interface>>
+        +ExecuteAsync(operation, ct) Task~bool~
+    }
+
+    class IClock {
+        <<interface>>
+        +UtcNow DateTimeOffset
+        +Delay(timespan, ct) Task
+    }
+
+    class ResiliencyOptions {
+        +InitialBackoff TimeSpan
+        +MaxBackoff TimeSpan
+        +BackoffMultiplier double
+        +UseJitter bool
+        +OutboundQueueCapacity int
+        +DropOldestWhenQueueFull bool
+    }
+
+    class SendResult {
+        <<readonly struct>>
+        +SendStatus Status
+        +bool IsSuccess
+    }
+
+    class PollyRetryPolicy
+    class SystemClock
+    class NoRetryPolicy
+
+    class TcpMessagingSession
+    class GrpcMessagingSession
+
+    IRetryPolicy <|.. PollyRetryPolicy
+    IRetryPolicy <|.. NoRetryPolicy
+    IClock <|.. SystemClock
+    IConnectionStateObserver <|.. TcpMessagingSession
+    IConnectionStateObserver <|.. GrpcMessagingSession
+    TcpMessagingSession --> IRetryPolicy
+    TcpMessagingSession --> IClock
+    TcpMessagingSession --> ResiliencyOptions
+    GrpcMessagingSession --> IRetryPolicy
+    GrpcMessagingSession --> IClock
+    GrpcMessagingSession --> ResiliencyOptions
+```
+
+### Send pipeline (no-throw)
+
+```mermaid
+sequenceDiagram
+    participant App as Application Code
+    participant Svc as IMessagingService
+    participant EP as IEndpoint
+    participant Sess as Session
+    participant Queue as Outbound Channel~T~
+    participant Writer as Writer Task
+    participant Wire as Network
+
+    App->>Svc: TrySend(message, endpoint)
+    Svc->>EP: TrySend(message, sessionId)
+    EP->>Sess: TrySend(...)
+    Sess->>Sess: serialize TransportEnvelope
+    Sess->>Queue: TryWrite(frame)
+    alt write succeeds
+        Queue-->>Sess: true
+        Sess-->>App: SendResult.Buffered
+    else queue full
+        Queue-->>Sess: false
+        Sess-->>App: SendResult.QueueFull
+    end
+    Note over Writer: drains queue independently
+    Writer->>Queue: WaitToReadAsync / TryRead
+    Queue-->>Writer: frame
+    Writer->>Wire: write bytes
+    alt write fails
+        Writer->>Sess: requeue inflight frame
+        Writer->>Sess: signal connection broken
+        Note over Sess: supervisor reconnects<br/>and resumes draining
+    end
+```
+
+### Client reconnect supervisor
+
+```mermaid
+stateDiagram-v2
+    [*] --> Initializing
+    Initializing --> Connecting: supervisor starts
+    Connecting --> Connected: ConnectAsync succeeds
+    Connecting --> Connecting: ConnectAsync fails<br/>(Polly backoff)
+    Connected --> Disconnected: read or write fails
+    Disconnected --> Connecting: supervisor wakes up<br/>after InitialBackoff
+    Connected --> Closed: Dispose
+    Connecting --> Closed: Dispose
+    Disconnected --> Closed: Dispose
+    Initializing --> Closed: Dispose
+```
+
+The supervisor loop is:
+
+1. Set state `Connecting`.
+2. Call `IRetryPolicy.ExecuteAsync` &mdash; the policy retries the connect
+   attempt with exponential backoff until it succeeds or the session is
+   cancelled.
+3. Once connected, set state `Connected` and create a write loop that drains
+   the **persistent** outbound queue.
+4. If the write loop reports a transport failure, the in-flight frame is
+   stored on the session and prepended to the next connection's writer. The
+   supervisor then waits one `InitialBackoff` interval and starts again.
+5. On `Dispose`, all loops are cancelled and the supervisor exits within the
+   5-second drain timeout.
+
+### Send-result mapping
+
+| `SendStatus`     | When                                                                                  |
+|------------------|---------------------------------------------------------------------------------------|
+| `Sent`           | (Reserved for future synchronous-write fast paths.)                                   |
+| `Buffered`       | The frame was successfully placed in the outbound queue.                              |
+| `QueueFull`      | The outbound queue was full and `DropOldestWhenQueueFull` is `false`.                 |
+| `NoSuchTarget`   | Server-side send: no connection matched the requested target session ID, or no clients are connected for a broadcast. |
+| `ShuttingDown`   | The session has been disposed (or is in the process of disposing).                    |
+
+### Why no `IObservable<Unit>` for resilient sends
+
+The legacy `IMessagingService.Send(...)` returns an `IObservable<Unit>` whose
+factory is scheduled on `Scheduler.Default`. That keeps the historical API
+compatible but means a tight loop of `Send` calls can be reordered by the
+thread pool. For ordering-sensitive code, use `IMessagingService.TrySend(...)`
+which writes to the outbound queue synchronously on the calling thread.
